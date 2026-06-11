@@ -83,4 +83,74 @@ if not df.empty:
     if col_race and col_race in df.columns:
         all_races = sorted(df[col_race].dropna().unique())
         selected_races = st.sidebar.multiselect("Etnia", options=all_races, default=all_races)
-        df_
+        df_filtered = df_filtered[df_filtered[col_race].isin(selected_races)]
+    
+    # 4. Título Principal em Português
+    st.title("Análise de Readmissão Hospitalar")
+    st.markdown("Dashboard executivo para monitoramento e predição de risco de readmissão clínica.")
+    st.write("---")
+    
+    # 5. Cartões de Métricas
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(f'<div class="metric-card"><div class="metric-title">Total de Pacientes</div><div class="metric-value">{len(df_filtered):,}</div></div>', unsafe_allow_html=True)
+    with col2:
+        taxa = (df_filtered[col_target].mean() * 100) if col_target and len(df_filtered) > 0 else 0
+        if taxa > 100: taxa = taxa / 100
+        st.markdown(f'<div class="metric-card"><div class="metric-title">Taxa de Readmissão</div><div class="metric-value">{taxa:.2f}%</div></div>', unsafe_allow_html=True)
+    with col3:
+        risco = (df_filtered[col_risk].mean() * 100) if col_risk and len(df_filtered) > 0 else 0
+        if risco > 100: risco = risco / 100
+        st.markdown(f'<div class="metric-card"><div class="metric-title">Risco Médio</div><div class="metric-value">{risco:.2f}%</div></div>', unsafe_allow_html=True)
+    with col4:
+        tempo = df_filtered[col_time].mean() if col_time and len(df_filtered) > 0 else 0
+        st.markdown(f'<div class="metric-card"><div class="metric-title">Tempo de Internação</div><div class="metric-value">{tempo:.1f} dias</div></div>', unsafe_allow_html=True)
+
+    # Tema dos gráficos
+    def apply_theme(fig, title_text, xaxis_title="", yaxis_title=""):
+        fig.update_layout(
+            title=dict(text=title_text, font=dict(color='#39FF14', size=16)),
+            paper_bgcolor='#1a1a1a', plot_bgcolor='#1a1a1a', font=dict(color='#FFFFFF'),
+            xaxis=dict(title=xaxis_title, gridcolor='#2d2d2d', title_font=dict(color='#39FF14'), tickfont=dict(color='#FFFFFF')),
+            yaxis=dict(title=yaxis_title, gridcolor='#2d2d2d', title_font=dict(color='#39FF14'), tickfont=dict(color='#FFFFFF')),
+            margin=dict(l=40, r=40, t=50, b=40), showlegend=False
+        )
+        return fig
+
+    # 6. Grid de Gráficos em Português
+    g1, g2 = st.columns(2)
+    g3, g4 = st.columns(2)
+    
+    if col_gender and col_target:
+        with g1:
+            df_g = df_filtered.groupby(col_gender)[col_target].mean().reset_index()
+            fig1 = px.bar(df_g, x=col_gender, y=col_target, text_auto='.2%')
+            fig1.update_traces(marker_color='#39FF14')
+            st.plotly_chart(apply_theme(fig1, "Readmissão por Gênero", "Gênero", "Taxa Média"), use_container_width=True)
+            
+    if col_time and col_risk:
+        with g2:
+            df_t = df_filtered.groupby(col_time)[col_risk].mean().reset_index()
+            fig2 = px.line(df_t, x=col_time, y=col_risk)
+            fig2.update_traces(line=dict(color='#39FF14', width=3))
+            st.plotly_chart(apply_theme(fig2, "Tempo de Internação X Risco", "Tempo de Internação (Dias)", "Média de Risco"), use_container_width=True)
+            
+    if col_age and col_target:
+        with g3:
+            age_order = ['[0-10)', '[10-20)', '[20-30)', '[30-40)', '[40-50)', '[50-60)', '[60-70)', '[70-80)', '[80-90)', '[90-100)']
+            df_a = df_filtered.groupby(col_age)[col_target].mean().reset_index()
+            df_a[col_age] = pd.Categorical(df_a[col_age], categories=age_order, ordered=True)
+            df_a = df_a.sort_values(col_age)
+            fig3 = px.bar(df_a, x=col_age, y=col_target)
+            fig3.update_traces(marker_color='#39FF14')
+            st.plotly_chart(apply_theme(fig3, "Readmissão por Faixa Etária", "Faixa Etária", "Taxa Média"), use_container_width=True)
+            
+    if col_meds and col_risk:
+        with g4:
+            df_m = df_filtered.groupby(col_meds)[col_risk].mean().reset_index()
+            fig4 = px.area(df_m, x=col_meds, y=col_risk)
+            fig4.update_traces(line=dict(color='#39FF14'), fillcolor='rgba(57, 255, 20, 0.2)')
+            st.plotly_chart(apply_theme(fig4, "Medicamentos X Risco", "Número de Medicamentos", "Média de Risco"), use_container_width=True)
+else:
+    st.info("Aguardando o upload correto do arquivo 'hospital_readmissions.csv' no GitHub.")
