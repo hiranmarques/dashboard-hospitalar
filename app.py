@@ -44,7 +44,7 @@ def load_data():
         df.columns = df.columns.str.lower().str.strip()
         df.columns = [c.split('[')[-1].replace(']', '') for c in df.columns]
         
-        # Mapeia colunas encontradas para traduzir o conteúdo interno de inglês para português
+        # Mapeia colunas encontradas para traduzir o conteúdo de inglês para português
         col_gender = next((c for c in df.columns if 'gender' in c or 'gênero' in c or 'genero' in c), None)
         col_race = next((c for c in df.columns if 'race' in c or 'etnia' in c or 'raça' in c or 'raca' in c), None)
         
@@ -83,19 +83,4 @@ if not df.empty:
     if col_race and col_race in df.columns:
         all_races = sorted(df[col_race].dropna().unique())
         selected_races = st.sidebar.multiselect("Etnia", options=all_races, default=all_races)
-        df_filtered = df_filtered[df_filtered[col_race].isin(selected_races)]
-    
-    # 4. Título Principal em Português
-    st.title("Análise de Readmissão Hospitalar")
-    st.markdown("Dashboard executivo para monitoramento e predição de risco de readmissão clínica.")
-    st.write("---")
-    
-    # 5. Cartões de Métricas em Português
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">Total de Pacientes</div><div class="metric-value">{len(df_filtered):,}</div></div>', unsafe_allow_html=True)
-    with col2:
-        taxa = (df_filtered[col_target].mean() * 100) if col_target and len(df_filtered) > 0 else 0
-        if taxa > 100: taxa = taxa / 100
-        st.markdown(f'<div class="metric-card"><div class="metric-title">Taxa de Readmissão</div><div class="metric-value">{taxa:.2f}%</div></div>',
+        df_
